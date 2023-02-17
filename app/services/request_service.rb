@@ -6,7 +6,7 @@ class RequestService
     @user = user
     @address = Address.find_by_zipcode(zip.gsub('-',''))
     unless @address.present?
-      endpoint = "http://cep.la/#{zip}"
+      endpoint = "https://viacep.com.br/ws/#{zip}/json/"
       uri = URI.parse(endpoint)
       @http = Net::HTTP.new(uri.host)
       @http.read_timeout = 2
@@ -16,7 +16,7 @@ class RequestService
 
   def result
     if @address.present?
-      [@address.result,:ok]
+      [@address.result, :ok]
     else
       begin
         res = prepare_return_json(JSON.parse(@http.request(@req).body))
@@ -25,8 +25,8 @@ class RequestService
       rescue Net::ReadTimeout
       rescue Net::OpenTimeout
         [{},:request_timeout]
-      rescue Exception
-        [{}, :internal_server_error]
+      rescue Exception => e
+        [{error: e.message}, :internal_server_error]
       end
     end
   end
@@ -34,12 +34,12 @@ class RequestService
   private
 
   def prepare_return_json(data)
-    zip = data['cep'].gsub('-','')
+    zip = data['cep'].to_s.gsub('-','')
     {
       street: data['logradouro'],
-      address: "#{data['logradouro']}, #{data['bairro']} - #{data['cidade']}/#{data['uf']} #{zip}",
+      address: "#{data['logradouro']}, #{data['bairro']} - #{data['localidade']}/#{data['uf']} #{zip}",
       neighborhood: data['bairro'],
-      city: data['cidade'],
+      city: data['localidade'],
       state: data['uf'],
       zipcode: zip
     }
