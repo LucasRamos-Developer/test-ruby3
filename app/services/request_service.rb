@@ -31,6 +31,15 @@ class RequestService
     end
   end
 
+  def send(zip)
+    uri = URI.parse("http://localhost:3000/users")
+    http = Net::HTTP.new(uri.host)
+    request = Net::HTTP::Post.new(uri.path, {'Content-Type' => 'application/json'})
+    request.body = {email: @user.email, cep: zip, total: @user.address.count }.to_json
+
+    http.request(request)
+  end
+
   private
 
   def prepare_return_json(data)
