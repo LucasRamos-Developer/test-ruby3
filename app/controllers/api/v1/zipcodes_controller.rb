@@ -1,33 +1,22 @@
 class Api::V1::ZipcodesController < ApplicationController
   before_action :authenticate_user!
 
-  before_action :webhook, only: [:search]
-
   def search
-    zip = params[:zipcode]
-    if valid_zip(zip)
-      request_service = request_service(zip)
-      res = request_service.result
-
-      render json: res[0], status: res[1]
-    else
-      render json: {error: {message: 'CEP INVÁLIDO'}}, status: :bad_request
-    end
+    address = address_search_service.execute()
+    render json: {content: address, webhook: user_service.webhook(params[:zipcode])}, status: :ok
+  rescue Zipcode::Error => e
+    render json: {erroor: {message: e.message, status: e.status}}, status: e.status
+  rescue Exception => e
+    render json: {error: {message: e.message}}, status: :internal_server_error
   end
 
   private
 
-  def webhook
-    request_service = request_service(zip)
-    request_service.send
+  def address_search_service
+    @address_search ||= AddressesSearchService.new(params[:zipcode], current_user)
   end
 
-  def valid_zip(zip)
-    /^\d{5}-?\d{3}$/.match zip
+  def user_service
+    @UserService ||= UserService.new(current_user)
   end
-
-  def request_service
-    @request ||= RequestService.new(zip, current_user)
-  end
-
 end

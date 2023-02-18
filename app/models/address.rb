@@ -3,9 +3,7 @@ class Address < ApplicationRecord
 
   validates_presence_of :zipcode, :result
 
-  after_create :send_webhooks
-
-  def send_webhooks
-    WebhookService.new.send("teste")
+  def self.valid_zip(zip)
+    /^\d{5}-?\d{3}$/.match zip
   end
 end
